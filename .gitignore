@@ -1,0 +1,10 @@
+# Fichiers compilés
+bin/
+*.class
+
+# Fichiers propres à Eclipse
+.settings/
+.metadata/
+
+# Système
+.DS_Store
