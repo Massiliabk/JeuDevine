@@ -1,115 +1,262 @@
 import javax.swing.*;
 import java.awt.*;
-import java.util.Random;
+import java.util.ArrayDeque;
+import java.util.Deque;
+import java.util.List;
 
 public class JeuDevineGUI extends JFrame {
 
-    private static final int MIN = 1;
-    private static final int MAX = 100;
-    private static final int MAX_ESSAIS = 10;
+    private final GameLogic jeu = new GameLogic();
 
-    private final Random random = new Random();
-    private int nombreSecret;
-    private int nombreEssais;
-
-    private final JLabel labelConsigne = new JLabel(
-            "J'ai choisi un nombre entre " + MIN + " et " + MAX + ".", SwingConstants.CENTER);
-    private final JLabel labelMessage = new JLabel("À toi de jouer !", SwingConstants.CENTER);
-    private final JLabel labelEssais = new JLabel("Essais : 0 / " + MAX_ESSAIS);
-    private final JTextField champSaisie = new JTextField(8);
-    private final JButton boutonValider = new JButton("Valider");
+    private final JPanel conversation = new JPanel();
+    private final JScrollPane defilement = new JScrollPane();
+    private final JLabel labelStatut = new JLabel("● en ligne");
+    private final JLabel labelEssais = new JLabel();
+    private final JProgressBar progression = new JProgressBar(0, GameLogic.MAX_ESSAIS);
+    private final JTextField champSaisie = new JTextField();
+    private final JButton boutonEnvoyer = new JButton("Envoyer");
     private final JButton boutonRejouer = new JButton("Rejouer");
+    private final CardLayout cartes = new CardLayout();
+    private final JPanel barreBas = new JPanel(cartes);
 
     public JeuDevineGUI() {
         setTitle("Devine le nombre");
-        setSize(400, 250);
-        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        setDefaultCloseOperation(EXIT_ON_CLOSE);
+        setSize(480, 720);
+        setMinimumSize(new Dimension(420, 560));
         setLocationRelativeTo(null);
 
-        JPanel principal = new JPanel(new BorderLayout(10, 10));
-        principal.setBorder(BorderFactory.createEmptyBorder(15, 15, 15, 15));
+        setLayout(new BorderLayout());
+        add(construireEntete(), BorderLayout.NORTH);
+        add(construireConversation(), BorderLayout.CENTER);
+        add(construireBarreBas(), BorderLayout.SOUTH);
 
-        JPanel haut = new JPanel(new GridLayout(2, 1, 5, 5));
-        labelMessage.setFont(new Font("Arial", Font.BOLD, 16));
-        haut.add(labelConsigne);
-        haut.add(labelMessage);
-
-        JPanel centre = new JPanel(new FlowLayout());
-        centre.add(champSaisie);
-        centre.add(boutonValider);
-
-        JPanel bas = new JPanel(new BorderLayout());
-        bas.add(labelEssais, BorderLayout.WEST);
-        bas.add(boutonRejouer, BorderLayout.EAST);
-
-        principal.add(haut, BorderLayout.NORTH);
-        principal.add(centre, BorderLayout.CENTER);
-        principal.add(bas, BorderLayout.SOUTH);
-        add(principal);
-
-        // Actions
-        boutonValider.addActionListener(e -> verifierProposition());
-        champSaisie.addActionListener(e -> verifierProposition()); // touche Entrée
+        boutonEnvoyer.addActionListener(e -> envoyer());
+        champSaisie.addActionListener(e -> envoyer());
         boutonRejouer.addActionListener(e -> nouvellePartie());
 
         nouvellePartie();
     }
 
-    private void nouvellePartie() {
-        nombreSecret = random.nextInt(MAX - MIN + 1) + MIN;
-        nombreEssais = 0;
+    // ------------------------------------------------------------ construction
 
-        labelMessage.setText("À toi de jouer !");
-        labelEssais.setText("Essais : 0 / " + MAX_ESSAIS);
-        champSaisie.setText("");
-        champSaisie.setEnabled(true);
-        boutonValider.setEnabled(true);
-        boutonRejouer.setEnabled(false);
-        champSaisie.requestFocusInWindow();
+    private JComponent construireEntete() {
+        Composants.Avatar avatar = new Composants.Avatar("M", Theme.ACCENT, Theme.ACCENT_2, 46);
+
+        JLabel nom = new JLabel("Le Maître du jeu");
+        nom.setFont(Theme.police(Font.BOLD, 16f));
+        nom.setForeground(Theme.TEXTE);
+        labelStatut.setFont(Theme.police(Font.PLAIN, 12f));
+        labelStatut.setForeground(Theme.SUCCES);
+
+        JPanel textes = new JPanel(new GridLayout(2, 1));
+        textes.setOpaque(false);
+        textes.add(nom);
+        textes.add(labelStatut);
+
+        labelEssais.setFont(Theme.police(Font.BOLD, 13f));
+        labelEssais.setForeground(Theme.TEXTE_DISCRET);
+
+        JPanel bandeau = new JPanel(new BorderLayout(12, 0));
+        bandeau.setBackground(Theme.ENTETE);
+        bandeau.setBorder(BorderFactory.createEmptyBorder(12, 16, 12, 16));
+        bandeau.add(avatar, BorderLayout.WEST);
+        bandeau.add(textes, BorderLayout.CENTER);
+        bandeau.add(labelEssais, BorderLayout.EAST);
+
+        progression.setBorderPainted(false);
+        progression.setPreferredSize(new Dimension(10, 4));
+
+        JPanel haut = new JPanel(new BorderLayout());
+        haut.add(bandeau, BorderLayout.CENTER);
+        haut.add(progression, BorderLayout.SOUTH);
+        return haut;
     }
 
-    private void verifierProposition() {
+    private JComponent construireConversation() {
+        conversation.setLayout(new BoxLayout(conversation, BoxLayout.Y_AXIS));
+        conversation.setOpaque(false);
+        conversation.setBorder(BorderFactory.createEmptyBorder(14, 12, 14, 12));
+
+        JPanel support = new JPanel(new BorderLayout());
+        support.setBackground(Theme.FOND);
+        support.add(conversation, BorderLayout.NORTH);
+
+        defilement.setViewportView(support);
+        defilement.setBorder(null);
+        defilement.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
+        defilement.getViewport().setBackground(Theme.FOND);
+        defilement.getVerticalScrollBar().setUnitIncrement(16);
+        return defilement;
+    }
+
+    private JComponent construireBarreBas() {
+        champSaisie.setFont(Theme.police(Font.PLAIN, 16f));
+        champSaisie.putClientProperty("JTextField.placeholderText", "Écris un nombre…");
+        champSaisie.putClientProperty("JComponent.minimumHeight", 44);
+        boutonEnvoyer.putClientProperty("JComponent.minimumHeight", 44);
+        boutonEnvoyer.putClientProperty("JComponent.minimumWidth", 100);
+        boutonEnvoyer.setFont(Theme.police(Font.BOLD, 14f));
+
+        JPanel saisie = new JPanel(new BorderLayout(10, 0));
+        saisie.setOpaque(false);
+        saisie.add(champSaisie, BorderLayout.CENTER);
+        saisie.add(boutonEnvoyer, BorderLayout.EAST);
+
+        boutonRejouer.putClientProperty("JComponent.minimumHeight", 44);
+        boutonRejouer.putClientProperty("JComponent.minimumWidth", 180);
+        boutonRejouer.setFont(Theme.police(Font.BOLD, 14f));
+        JPanel fin = new JPanel(new FlowLayout(FlowLayout.CENTER, 0, 0));
+        fin.setOpaque(false);
+        fin.add(boutonRejouer);
+
+        barreBas.setBackground(Theme.ENTETE);
+        barreBas.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createMatteBorder(1, 0, 0, 0, Theme.BORDURE),
+                BorderFactory.createEmptyBorder(12, 14, 12, 14)));
+        barreBas.add(saisie, "saisie");
+        barreBas.add(fin, "fin");
+        return barreBas;
+    }
+
+    // ------------------------------------------------------------ déroulement
+
+    private void nouvellePartie() {
+        jeu.nouvellePartie();
+        conversation.removeAll();
+        conversation.revalidate();
+        conversation.repaint();
+        majEssais();
+        cartes.show(barreBas, "saisie");
+        getRootPane().setDefaultButton(boutonEnvoyer);
+
+        maitreDit(() -> activerSaisie(true),
+                Dialogue.accueil(GameLogic.MIN, GameLogic.MAX, GameLogic.MAX_ESSAIS));
+    }
+
+    private void envoyer() {
+        String texte = champSaisie.getText().trim();
+        if (texte.isEmpty()) return;
+
+        activerSaisie(false);
+        champSaisie.setText("");
+        ajouterBulle(texte, true);
+
         int proposition;
         try {
-            proposition = Integer.parseInt(champSaisie.getText().trim());
+            proposition = Integer.parseInt(texte);
         } catch (NumberFormatException ex) {
-            labelMessage.setText("Saisis un nombre entier valide.");
-            champSaisie.selectAll();
+            maitreDit(() -> activerSaisie(true), Dialogue.nonNombre());
+            return;
+        }
+        if (proposition < GameLogic.MIN || proposition > GameLogic.MAX) {
+            maitreDit(() -> activerSaisie(true), Dialogue.horsLimites(GameLogic.MIN, GameLogic.MAX));
             return;
         }
 
-        nombreEssais++;
-        labelEssais.setText("Essais : " + nombreEssais + " / " + MAX_ESSAIS);
+        GameLogic.Resultat resultat = jeu.proposer(proposition);
+        majEssais();
 
-        if (proposition == nombreSecret) {
-            labelMessage.setText("Bravo ! Trouvé en " + nombreEssais + " essai(s).");
-            finDePartie();
-            return;
-        }
-
-        if (nombreEssais >= MAX_ESSAIS) {
-            labelMessage.setText("Perdu ! Le nombre était " + nombreSecret + ".");
-            finDePartie();
-            return;
-        }
-
-        if (proposition < nombreSecret) {
-            labelMessage.setText("C'est plus grand !");
+        if (resultat == GameLogic.Resultat.GAGNE) {
+            maitreDit(this::finDePartie, Dialogue.victoire(jeu.getSecret(), jeu.getEssais()));
+        } else if (jeu.estTerminee()) {
+            maitreDit(this::finDePartie, Dialogue.defaite(jeu.getSecret()));
         } else {
-            labelMessage.setText("C'est plus petit !");
+            int distance = Math.abs(proposition - jeu.getSecret());
+            int restants = GameLogic.MAX_ESSAIS - jeu.getEssais();
+            maitreDit(() -> activerSaisie(true),
+                    Dialogue.indice(resultat == GameLogic.Resultat.PLUS_GRAND, distance, restants));
         }
-
-        champSaisie.setText("");
-        champSaisie.requestFocusInWindow();
     }
 
     private void finDePartie() {
-        champSaisie.setEnabled(false);
-        boutonValider.setEnabled(false);
-        boutonRejouer.setEnabled(true);
+        cartes.show(barreBas, "fin");
+        getRootPane().setDefaultButton(boutonRejouer);
+        boutonRejouer.requestFocusInWindow();
+    }
+
+    private void activerSaisie(boolean actif) {
+        champSaisie.setEnabled(actif);
+        boutonEnvoyer.setEnabled(actif);
+        if (actif) champSaisie.requestFocusInWindow();
+    }
+
+    private void majEssais() {
+        int e = jeu.getEssais();
+        labelEssais.setText("Essais " + e + " / " + GameLogic.MAX_ESSAIS);
+        progression.setValue(e);
+        progression.setForeground(e >= 9 ? Theme.ERREUR : e >= 7 ? Theme.ATTENTION : Theme.ACCENT);
+    }
+
+    // ------------------------------------------------------------ conversation
+
+    /** Le Maître écrit ses messages un par un, avec l'animation « écrit… ». */
+    private void maitreDit(Runnable apres, String... messages) {
+        activerSaisie(false);
+        labelStatut.setText("écrit…");
+        jouerSuivant(new ArrayDeque<>(List.of(messages)), apres);
+    }
+
+    private void jouerSuivant(Deque<String> file, Runnable apres) {
+        if (file.isEmpty()) {
+            labelStatut.setText("● en ligne");
+            if (apres != null) apres.run();
+            return;
+        }
+        String message = file.poll();
+        Composants.IndicateurSaisie indicateur = new Composants.IndicateurSaisie();
+        JPanel ligne = ajouterLigne(indicateur, false);
+
+        int delai = Math.min(450 + message.length() * 22, 1400);
+        Timer timer = new Timer(delai, e -> {
+            indicateur.arreter();
+            conversation.remove(ligne);
+            ajouterBulle(message, false);
+            jouerSuivant(file, apres);
+        });
+        timer.setRepeats(false);
+        timer.start();
+    }
+
+    private void ajouterBulle(String texte, boolean moi) {
+        ajouterLigne(new Composants.Bulle(texte, moi), moi);
+    }
+
+    private JPanel ajouterLigne(JComponent contenu, boolean moi) {
+        JPanel ligne = new JPanel(new FlowLayout(moi ? FlowLayout.RIGHT : FlowLayout.LEFT, 8, 4));
+        ligne.setOpaque(false);
+
+        Composants.Avatar avatar = moi
+                ? new Composants.Avatar("T", Theme.ACCENT_2, Theme.ACCENT, 34)
+                : new Composants.Avatar("M", Theme.ACCENT, Theme.ACCENT_2, 34);
+        if (moi) {
+            ligne.add(contenu);
+            ligne.add(avatar);
+        } else {
+            ligne.add(avatar);
+            ligne.add(contenu);
+        }
+
+        ligne.setAlignmentX(Component.LEFT_ALIGNMENT);
+        ligne.setMaximumSize(new Dimension(Integer.MAX_VALUE, ligne.getPreferredSize().height));
+        conversation.add(ligne);
+        conversation.revalidate();
+        conversation.repaint();
+        defilerEnBas();
+        return ligne;
+    }
+
+    private void defilerEnBas() {
+        SwingUtilities.invokeLater(() -> {
+            JScrollBar barre = defilement.getVerticalScrollBar();
+            barre.setValue(barre.getMaximum());
+        });
     }
 
     public static void main(String[] args) {
-        SwingUtilities.invokeLater(() -> new JeuDevineGUI().setVisible(true));
+        SwingUtilities.invokeLater(() -> {
+            Theme.installer();
+            new JeuDevineGUI().setVisible(true);
+        });
     }
 }
