@@ -8,6 +8,12 @@ public class JeuDevineGUI extends JFrame {
 
     private final GameLogic jeu = new GameLogic();
 
+    
+    private final CardLayout pages = new CardLayout();
+    private final JPanel racine = new JPanel(pages);
+    private final PageAccueil accueil;
+
+    
     private final JPanel conversation = new JPanel();
     private final JScrollPane defilement = new JScrollPane();
     private final JLabel labelStatut = new JLabel("● en ligne");
@@ -16,6 +22,7 @@ public class JeuDevineGUI extends JFrame {
     private final JTextField champSaisie = new JTextField();
     private final JButton boutonEnvoyer = new JButton("Envoyer");
     private final JButton boutonRejouer = new JButton("Rejouer");
+    private final JButton boutonMenu = new JButton("Accueil");
     private final CardLayout cartes = new CardLayout();
     private final JPanel barreBas = new JPanel(cartes);
 
@@ -26,16 +33,35 @@ public class JeuDevineGUI extends JFrame {
         setMinimumSize(new Dimension(420, 560));
         setLocationRelativeTo(null);
 
-        setLayout(new BorderLayout());
-        add(construireEntete(), BorderLayout.NORTH);
-        add(construireConversation(), BorderLayout.CENTER);
-        add(construireBarreBas(), BorderLayout.SOUTH);
+        JPanel pageJeu = new JPanel(new BorderLayout());
+        pageJeu.add(construireEntete(), BorderLayout.NORTH);
+        pageJeu.add(construireConversation(), BorderLayout.CENTER);
+        pageJeu.add(construireBarreBas(), BorderLayout.SOUTH);
+
+        accueil = new PageAccueil(this::demarrer, () -> System.exit(0));
+        racine.add(accueil, "accueil");
+        racine.add(pageJeu, "jeu");
+        setContentPane(racine);
+
+        pages.show(racine, "accueil");
+        getRootPane().setDefaultButton(accueil.getBoutonJouer());
 
         boutonEnvoyer.addActionListener(e -> envoyer());
         champSaisie.addActionListener(e -> envoyer());
         boutonRejouer.addActionListener(e -> nouvellePartie());
+        boutonMenu.addActionListener(e -> retourAccueil());
+    }
 
+    // ------------------------------------------------------------ navigation
+
+    private void demarrer() {
+        pages.show(racine, "jeu");
         nouvellePartie();
+    }
+
+    private void retourAccueil() {
+        pages.show(racine, "accueil");
+        getRootPane().setDefaultButton(accueil.getBoutonJouer());
     }
 
     // ------------------------------------------------------------ construction
@@ -104,11 +130,16 @@ public class JeuDevineGUI extends JFrame {
         saisie.add(boutonEnvoyer, BorderLayout.EAST);
 
         boutonRejouer.putClientProperty("JComponent.minimumHeight", 44);
-        boutonRejouer.putClientProperty("JComponent.minimumWidth", 180);
+        boutonRejouer.putClientProperty("JComponent.minimumWidth", 160);
         boutonRejouer.setFont(Theme.police(Font.BOLD, 14f));
-        JPanel fin = new JPanel(new FlowLayout(FlowLayout.CENTER, 0, 0));
+        boutonMenu.putClientProperty("JComponent.minimumHeight", 44);
+        boutonMenu.putClientProperty("JComponent.minimumWidth", 120);
+        boutonMenu.setFont(Theme.police(Font.PLAIN, 14f));
+
+        JPanel fin = new JPanel(new FlowLayout(FlowLayout.CENTER, 10, 0));
         fin.setOpaque(false);
         fin.add(boutonRejouer);
+        fin.add(boutonMenu);
 
         barreBas.setBackground(Theme.ENTETE);
         barreBas.setBorder(BorderFactory.createCompoundBorder(

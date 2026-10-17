@@ -24,7 +24,7 @@ public final class Dialogue {
                 : choisir("C'est plus petit ↓", "Vise plus bas ↓", "Non, c'est plus petit ↓", "Trop haut, descends un peu ↓");
 
         String chaleur = "";
-        if (distance <= 3) chaleur = " 🔥 Tu brûles !";
+        if (distance <= 3) chaleur = " 🔥 T'es Fort !";
         else if (distance <= 10) chaleur = " Tu te rapproches…";
         else if (distance >= 40) chaleur = " Tu es encore très loin.";
 
@@ -36,7 +36,7 @@ public final class Dialogue {
 
     public static String[] victoire(int secret, int essais) {
         String duree = "Trouvé en " + essais + " essai" + (essais > 1 ? "s" : "")
-                + (essais <= 4 ? " — impressionnant !" : ".");
+                + (essais <= 4 ? " impressionnant !" : ".");
         return new String[]{
                 essais == 1 ? "Du premier coup ?! Incroyable ! 😱" : "Bravo ! 🎉 C'était bien " + secret + ".",
                 duree,
