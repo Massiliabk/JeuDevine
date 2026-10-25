@@ -8,3 +8,4 @@ bin/
 
 # Système
 .DS_Store
+.classpath
