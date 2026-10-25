@@ -6,6 +6,11 @@ Jeu de devinette en **Java Swing** présenté comme une conversation : le Maîtr
 
 - Java 17 ou plus
 - [FlatLaf 3.5.4](https://repo1.maven.org/maven2/com/formdev/flatlaf/3.5.4/flatlaf-3.5.4.jar) (un seul `.jar`)
+## Aperçu
+
+| Accueil | Partie |
+|---|---|
+| ![Accueil](accueil.png) | ![Chat](chat.png) |
   
 ## Lancer le jeu
 
